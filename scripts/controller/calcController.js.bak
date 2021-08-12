@@ -1,0 +1,372 @@
+class CalcController {
+    constructor(){
+        this._audio = new Audio('click.mp3'); // audio web api
+        this._audioOnOff = false;
+        this._lastOperator = '';
+        this._lastNumber = '';
+        this._operation = [];
+        this._locale = 'pt-BR';
+        this._displayCalcEl = document.querySelector("#display");
+        this._dateEl = document.querySelector("#data");
+        this._timeEl = document.querySelector("#hora");
+        this._currentDate;
+        this.initialize();
+        this.initButtonsEvents();
+        this.initKeyboard();
+    }
+
+    initialize(){
+        this.setDisplayDateTime();
+        setInterval(()=>{
+            this.setDisplayDateTime();
+        }, 1000);
+
+        this.setLastNumberToDisplay();
+        this.pasteFromClipboard();
+
+        document.querySelectorAll('.btn-ac').forEach(btn =>{ // áudio
+            btn.addEventListener('dbclick', e=> {
+                this.toggleAudio();
+            });
+        });
+    }
+
+    toggleAudio(){
+        // this._audioOnOff = (this._audioOnOff) ? false : true;
+        this._audioOnOff = !this._audioOnOff; // se ele era false, recebe true
+    }
+
+    playAudio(){
+        if(this._audioOnOff){
+            this._audio.currentTime = 0;
+            this._audio.play();
+        };
+    }
+
+    copyToClipboard() { // copiar para a área de transferência
+        let input = document.createElement('input');
+        input.value = this.displayCalc;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("Copy");
+        input.remove();
+    }
+
+    pasteFromClipboard() {
+        document.addEventListener('paste', e=> {
+            let text = e.clipboardData.getData('Text'); // Formato da informação
+            this.displayCalc = parseFloat(text);
+            console.log(text); // vai retornar NaN quando não for número
+        });
+    }
+
+    initKeyboard(){
+        document.addEventListener('keyup', e=> {
+            this.playAudio();
+
+            switch(e.key) { // e: evento, key: propriedade
+                case 'Escape':
+                    this.clearAll();
+                    break;
+                case 'Backspace':
+                    this.clearEntry();
+                break;
+                case '+':
+                case '-':
+                case '/':
+                case '*':
+                case '%':
+                    this.addOperation(e.key);
+                    break;
+                case 'Enter':
+                case '=':
+                	this.calc();
+                    break;
+                case '.':
+                case ',':
+                    this.addDot();
+                    break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    this.addOperation(parseInt(e.key));
+                    break;
+                case 'c':
+                    if(e.ctrlKey) this.copyToClipboard();
+                    break;
+            }
+            console.log(e.key); //para mostrar que tecla foi pressionada
+        });
+    }
+
+    addEventListenerAll(element, events, fn) { //element: btn, events: click drag
+        events.split(' ').forEach(event => {
+            element.addEventListener(event, fn, false);
+        })
+    }
+
+    clearAll() {
+        this._operation = []; //primeiro item do array é sempre 0
+        this._lastNumber = '';
+        this._lastOperator = '';
+        this.setLastNumberToDisplay();
+    }
+
+    clearEntry() {
+        this._operation.pop(); //tira o último elemento do array
+        this.setLastNumberToDisplay();
+    }
+
+    getLastOperation() {
+        return this._operation[this._operation.length-1];
+    }
+
+    setLastOperation(value) {
+        this._operation[this._operation.length-1] = value;
+    }
+
+    isOperator(value) {
+        return (['+', '-', '*', '/', '%'].indexOf(value) > -1); //Nesse caso, o index é 0,1,2,3 e 4
+    } // se não encontrar o operador, retorna false (-1)
+
+    pushOperation(value){
+        this._operation.push(value);
+        if(this._operation.length > 3) {
+            this.calc();
+            console.log(); //primeiro operador, segundo número, sinal de operação
+        }
+    }
+
+    getResult(){
+        return eval(this._operation.join(""));
+    }
+
+    calc() { //eval, tem que virar string, vai calcular a operação
+        let last = '';
+        this._lastOperator = this.getLastItem(); //passando true, vai guardar o último operador
+
+        if(this._operation.length < 3) {
+            let firstItem = this._operation[0];
+            this._operation = [firstItem, this._lastOperator, this._lastNumber]; // 3 itens na operação, zerando o primeiro item
+        }
+
+        if(this._operation.length > 3) { //  mais de 3 itens para fazer o botão igual funcionar
+            console.log('lenght > 3: ' + this._operation);
+            last = this._operation.pop(); //retira o último elemento
+            this._lastNumber = this.getResult(); // guarda o último número que foi calculado
+        } else if(this._operation.length == 3) {
+            this._lastNumber = this.getLastItem(false);
+        }
+
+        console.log('_lastOperator', this._lastOperator);
+        console.log('_lastNumber', this._lastNumber);
+
+        let result = this.getResult();
+        if(last == '%') { //Tratando o cálculo de porcentagem
+            // result = result / 100;
+            result /= 100; //Para fazer a função do botão % da calculadora
+            this._operation = [result]; //Aqui já fez a operação
+        } else {
+            this._operation = [result]; //aqui vai salvar o resultado
+            if(last) this._operation.push(last);
+        }
+        this.setLastNumberToDisplay(); //vai calcular e colocar o valor na tela
+    }
+
+    getLastItem(isOperator = true) {
+        console.log(this._operation);
+        let lastItem;
+        for (let i = this._operation.length-1; i >= 0; i--) {
+
+            if (this.isOperator(this._operation[i]) == isOperator) {
+               	lastItem = this._operation[i];
+                break;
+            }
+        }
+        if(!lastItem) {
+            // a = b -> if // ? -> then // : -> if not;
+            lastItem = (isOperator) ? this._lastOperator : this._lastNumber;
+        }
+        return lastItem;
+    }
+
+    setLastNumberToDisplay() { //for: procurando o último número do array
+        // valor inicial, valor final (quantas posições), incremento (++ ou --)
+        // for(let i = 0; i <= 100; i++){
+        //     console.log(i);
+        // }
+        let lastNumber = this.getLastItem(false); //retorna um número
+        // for(let i = this._operation.length - 1; i >= 0; i--){
+        //     if(!this.isOperator(this._operation[i])) {
+        //         lastNumber = this._operation[i];
+        //         break; //para a execução do for
+        //     }
+        // }
+        if(!lastNumber) lastNumber = 0;
+        this.displayCalc = lastNumber;
+    }
+
+    addOperation(value) { //adicionando uma nova operação
+        console.log('A', value, isNaN(this.getLastOperation()));
+
+        if(isNaN(this.getLastOperation())) { //string, pergunta se a última coisa digitada não é um número
+            if(this.isOperator(value)) { // Typed value is a operator, must change operator
+                this.setLastOperation(value); //Trocar o operador
+            } else { // Typed value is a number
+                console.log('// Typed value is a number');
+                this.pushOperation(value); //adicionar a operação
+                this.setLastNumberToDisplay();
+            }
+
+        } else { // Last value is a number
+            if(this.isOperator(value)) { //verificando se é operador
+                console.log('// Typed value is operator');
+                this.pushOperation(value); //adicionar a operação
+            } else {
+                let newValue = this.getLastOperation().toString() + value.toString();
+                this.setLastOperation(newValue); //quando passa a operação, modifica o numero
+                //atualizar o display da calculadora, mostra o último número que foi digitado
+                this.setLastNumberToDisplay();
+            }
+        }
+        console.log(this._operation);
+    }
+
+    setError() {
+        this.displayCalc = "Error";
+    }
+
+    addDot() {
+        let lastOperation = this.getLastOperation();
+            console.log(lastOperation);
+
+        if(typeof lastOperation === 'string' && lastOperation.split('').indexOf('.') > -1) return;
+
+        if(this.isOperator(lastOperation) || !lastOperation) {
+            this.pushOperation('0.');
+        } else {
+            this.setLastOperation(lastOperation.toString() + '.');
+        }
+        this.setLastNumberToDisplay();
+    }
+
+    execBtn(value) {
+        this.playAudio();
+
+        switch(value) {
+            case 'ac': // All Clear (ou c)
+                this.clearAll();
+                break;
+            case 'ce': // Cancel Entry
+                this.clearEntry();
+                break;
+            case 'soma':
+                this.addOperation('+');
+                break;
+            case 'subtracao':
+                this.addOperation('-');
+                break;
+            case 'divisao':
+                this.addOperation('/');
+                break;
+            case 'multiplicacao':
+                this.addOperation('*');
+                break;
+            case 'porcento':
+                this.addOperation('%'); // % é resto de divisão no javascript
+                break;
+            case 'igual':
+                this.calc();
+                break;
+            case 'ponto':
+                this.addDot();
+                break;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                this.addOperation(parseInt(value)); // string vira number
+                break;
+
+            default:
+                this.setError();
+                break;
+        }
+        // Just in case, show everytime a button is clicked or dragged
+        console.log(this._operation);
+    }
+
+    initButtonsEvents(){ //tratando múltiplos eventos
+        let buttons = document.querySelectorAll("#buttons > g, #parts > g");
+        buttons.forEach((btn, index)=>{ //percorrer cada um dos botões da calculadora, recebendo dois argumentos
+            this.addEventListenerAll(btn, "click drag", e => { // e: parâmetro do arrow function
+                let textBtn = btn.className.baseVal.replace("btn-", "");
+                console.log(btn.className.baseVal.replace("btn-", ""));
+                this.execBtn(textBtn);
+            });
+            this.addEventListenerAll(btn, "mouseover mouseup mousedown", e => {
+                btn.style.cursor = "pointer"; //formato de mão no mouse
+            });
+        });
+    }
+
+    setDisplayDateTime(){
+        this.displayDate  = this.currentDate.toLocaleDateString(this._locale, {            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        });
+        this.displayTime = this.currentDate.toLocaleTimeString(this._locale);
+
+    }
+
+    get displayTime(){
+        return this._timeEl.innerHTML;
+    }
+
+    set displayTime(value){
+        return this._timeEl.innerHTML = value;
+    }
+
+    get displayDate(){
+        return this._dateEl.innerHTML;
+    }
+
+    set displayDate(value){
+        return this._dateEl.innerHTML = value;
+    }
+
+    get displayCalc(){
+        return this._displayCalcEl.innerHTML;
+    }
+
+    set displayCalc(value){
+        this._displayCalcEl.innerHTML = value;
+    }
+
+    get currentDate(){
+        return new Date();
+    }
+
+    set currentDate(value){
+        this.currentDate = value;
+    }
+
+
+
+}
+
+/* date: classe nativa do JavaScript */
