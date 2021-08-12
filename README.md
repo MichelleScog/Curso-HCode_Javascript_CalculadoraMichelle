@@ -1,6 +1,6 @@
 # Calculadora JavaScript
 
-## _Calculadora desenvolvida como exemplo do Curso Completo de JavaScript na Udemy.com.
+_Calculadora desenvolvida como exemplo do Curso Completo de JavaScript na Udemy.com.
 
 ## Ressalva: 
 > Está havendo um bug no Javascript com a precisão do ponto flutuante, que está quebrando após um determinado ponto.
