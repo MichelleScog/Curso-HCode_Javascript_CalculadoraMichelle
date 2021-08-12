@@ -145,12 +145,34 @@ class CalcController {
 
     getResult(){
         try{
-            return eval(this._operation.join(""));
+            let [valorA, operador, valorB] = this._operation;
+            let resultado;
+            valorA = valorA*1;
+            valorB = valorB*1;
+            switch(operador){
+                case '+':
+                    resultado = (valorA + valorB).toPrecision(7);
+                    break;
+                case '-':
+                    resultado = (valorA - valorB).toPrecision(7);
+                    break;
+                case '*':
+                    resultado = (valorA * valorB).toPrecision(7);
+                    break;
+                case '/':
+                    resultado = (valorA / valorB).toPrecision(7);
+                    break;
+                case '%':
+                    resultado = (valorA / 100).toPrecision(7);
+                    break;
+            }
+            return resultado;
+            //return eval(this._operation.join(""));
         } catch(e) {
+            //console.log(e);
             setTimeout(() =>{
                 this.setError();
             }, 1);
-        // console.log(e);
         }
     }
 
@@ -208,20 +230,20 @@ class CalcController {
     }
 
     addOperation(value) {
-        // console.log('A', value, isNaN(this.getLastOperation()));
+        //console.log('A', value, isNaN(this.getLastOperation()));
 
         if(isNaN(this.getLastOperation())) {
             if(this.isOperator(value)) { // Typed value is a operator, must change operator
                 this.setLastOperation(value);
             } else {
-                // console.log('// Typed value is a number');
+                //console.log('// Typed value is a number');
                 this.pushOperation(value);
                 this.setLastNumberToDisplay();
             }
 
         } else { // Last value is a number
             if(this.isOperator(value)) {
-                // console.log('// Typed value is operator');
+                //console.log('// Typed value is operator');
                 this.pushOperation(value);
             } else {
                 let newValue = this.getLastOperation().toString() + value.toString();
@@ -229,7 +251,7 @@ class CalcController {
                 this.setLastNumberToDisplay();
             }
         }
-        // console.log(this._operation);
+        //console.log(this._operation);
     }
 
     setError() {
@@ -238,7 +260,7 @@ class CalcController {
 
     addDot() {
         let lastOperation = this.getLastOperation();
-            console.log(lastOperation);
+            //console.log(lastOperation);
 
         if(typeof lastOperation === 'string' && lastOperation.split('').indexOf('.') > -1) return;
 
@@ -251,6 +273,7 @@ class CalcController {
     }
 
     execBtn(value) {
+        //console.log(`execBtn ${value}`);
         this.playAudio();
 
         switch(value) {
